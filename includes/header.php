@@ -1,6 +1,6 @@
 <?php if (!isset($no_header)): ?>
     <header class="header">
-        <div class="header-left">
+        <div class="">
             <div class="logo">
                 <h1>🍻 BRALIMA</h1>
                 <span>MegaData</span>

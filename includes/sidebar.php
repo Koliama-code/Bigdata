@@ -7,14 +7,14 @@
         </li>
 
         <li class="nav-item">
-            <a href="/bralima_app/modules/ventes/liste.php" class="nav-link">
-                💰 Ventes
+            <a href="/bralima_app/modules/produits/liste.php" class="nav-link">
+                📦 Produits
             </a>
         </li>
 
         <li class="nav-item active">
-            <a href="/bralima_app/modules/produits/liste.php" class="nav-link">
-                📦 Produits
+            <a href="/bralima_app/modules/ventes/liste.php" class="nav-link">
+                💰 Ventes
             </a>
         </li>
 
@@ -31,7 +31,7 @@
         </li>
 
         <?php if ($_SESSION['role'] == 'admin'): ?>
-            <li class="nav-section">Administration</li>
+            <!-- <li class="nav-section">Administration</li>
             <li class="nav-item">
                 <a href="/bralima_app/modules/admin/utilisateurs.php" class="nav-link">
                     👨‍💼 Utilisateurs
@@ -41,7 +41,7 @@
                 <a href="/bralima_app/modules/admin/parametres.php" class="nav-link">
                     ⚙️ Paramètres
                 </a>
-            </li>
+            </li> -->
         <?php endif; ?>
     </ul>
 </nav>

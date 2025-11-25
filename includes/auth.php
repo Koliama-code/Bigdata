@@ -10,7 +10,7 @@ function requireLogin()
 {
     if (!isLoggedIn()) {
         $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-        header('Location: ../login.php');
+        header('Location: /bralima_app/login.php');
         exit;
     }
 }
