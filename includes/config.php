@@ -9,7 +9,11 @@ define('DB_PASS', '');
 define('APP_NAME', 'BRALIMA MegaData Manager');
 define('APP_VERSION', '1.0');
 
-// ⭐⭐ CONFIGURATION SESSION - AJOUTEZ CE CI ⭐⭐
+// ⭐⭐ CONFIGURATION SÉCURITÉ - AJOUTEZ CES LIGNES ⭐⭐
+define('ACCESS_CODE', 'BRALIMA2024'); // Code d'accès pour création de compte
+define('TOKEN_EXPIRATION', 3600); // 1 heure pour les tokens de reset
+
+// ⭐⭐ CONFIGURATION SESSION ⭐⭐
 ini_set('session.cookie_lifetime', 86400); // 24 heures
 ini_set('session.gc_maxlifetime', 86400);  // 24 heures
 session_set_cookie_params(86400);          // 24 heures
@@ -36,4 +40,10 @@ function getDBConnection()
 function sanitize($data)
 {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+}
+
+// ⭐⭐ FONCTION POUR GÉNÉRER TOKEN SÉCURISÉ - AJOUTEZ CETTE FONCTION ⭐⭐
+function generateToken($length = 32)
+{
+    return bin2hex(random_bytes($length));
 }

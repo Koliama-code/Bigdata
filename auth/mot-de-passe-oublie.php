@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
 
     try {
         $pdo = getDBConnection();
-        $stmt = $pdo->prepare("SELECT * FROM utilisateurs WHERE nom_utilisateur = ? AND statut = 'actif'");
+        $stmt = $pdo->prepare("SELECT * FROM utilisateurs WHERE nom_utilisateur = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
@@ -21,8 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
             $token = generateToken();
             $expiration = date('Y-m-d H:i:s', time() + TOKEN_EXPIRATION);
 
-            $stmt = $pdo->prepare("UPDATE utilisateurs SET token_reset = ?, token_expiration = ? WHERE id = ?");
-            $stmt->execute([$token, $expiration, $user['id']]);
+            // CORRECTION : utiliser id_utilisateur au lieu de id
+            $stmt = $pdo->prepare("UPDATE utilisateurs SET token_reset = ?, token_expiration = ? WHERE id_utilisateur = ?");
+            $stmt->execute([$token, $expiration, $user['id_utilisateur']]);
 
             // Lien de reset (en développement)
             $reset_link = "http://localhost/bralima_app/auth/reset-password.php?token=" . $token;

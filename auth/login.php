@@ -13,12 +13,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $pdo = getDBConnection();
-        $stmt = $pdo->prepare("SELECT * FROM utilisateurs WHERE nom_utilisateur = ? AND statut = 'actif'");
+        $stmt = $pdo->prepare("SELECT * FROM utilisateurs WHERE nom_utilisateur = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['mot_de_passe'])) {
-            $_SESSION['user_id'] = $user['id'];
+            // UTILISEZ id_utilisateur AU LIEU DE id
+            $_SESSION['user_id'] = $user['id_utilisateur'];
             $_SESSION['username'] = $user['nom_utilisateur'];
             $_SESSION['role'] = $user['role'];
             $_SESSION['nom_complet'] = $user['nom_complet'];
@@ -27,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: ../index.php');
             exit;
         } else {
-            $error = "Identifiants incorrects ou compte inactif";
+            $error = "Identifiants incorrects";
         }
     } catch (PDOException $e) {
         $error = "Erreur de connexion: " . $e->getMessage();
@@ -47,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <body>
     <div class="auth-container">
-        <!-- Section Illustration -->
         <div class="auth-illustration">
             <div class="illustration-content">
                 <div class="illustration-icon">🔐</div>
@@ -56,7 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <!-- Section Formulaire -->
         <div class="auth-form-section">
             <div class="auth-header">
                 <h1>Connexion</h1>
@@ -78,9 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="password" id="password" name="password" class="form-control" placeholder="Entrez votre mot de passe" required>
                 </div>
 
-                <button type="submit" class="btn-primary">
-                    Se connecter
-                </button>
+                <button type="submit" class="btn-primary">Se connecter</button>
             </form>
 
             <div class="auth-links">
@@ -89,8 +86,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
-
-    <script src="../assets/js/auth.js"></script>
 </body>
 
 </html>

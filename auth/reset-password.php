@@ -39,8 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("UPDATE utilisateurs SET mot_de_passe = ?, token_reset = NULL, token_expiration = NULL WHERE id = ?");
-            $stmt->execute([$hashed_password, $user['id']]);
+            // CORRECTION : utiliser id_utilisateur au lieu de id
+            $stmt = $pdo->prepare("UPDATE utilisateurs SET mot_de_passe = ?, token_reset = NULL, token_expiration = NULL WHERE id_utilisateur = ?");
+            $stmt->execute([$hashed_password, $user['id_utilisateur']]);
 
             $success = "Mot de passe réinitialisé avec succès!";
         } catch (PDOException $e) {
@@ -92,9 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label for="password">Nouveau mot de passe</label>
                         <input type="password" id="password" name="password" class="form-control" placeholder="Minimum 6 caractères" required>
-                        <div class="password-strength">
-                            <div class="strength-bar"></div>
-                        </div>
                     </div>
 
                     <div class="form-group">
@@ -113,8 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
-
-    <script src="../assets/js/auth.js"></script>
 </body>
 
 </html>

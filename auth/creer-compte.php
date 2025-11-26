@@ -31,10 +31,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = "Le mot de passe doit contenir au moins 6 caractères";
     }
 
+    // Validation email
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Adresse email invalide";
+    }
+
     // Vérification si utilisateur existe déjà
     try {
         $pdo = getDBConnection();
-        $stmt = $pdo->prepare("SELECT id FROM utilisateurs WHERE nom_utilisateur = ? OR email = ?");
+        $stmt = $pdo->prepare("SELECT id_utilisateur FROM utilisateurs WHERE nom_utilisateur = ? OR email = ?");
         $stmt->execute([$username, $email]);
 
         if ($stmt->fetch()) {
@@ -48,12 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $role = 'user'; // Par défaut
+            $role = 'user'; // Rôle par défaut
 
-            $stmt = $pdo->prepare("INSERT INTO utilisateurs (nom_utilisateur, mot_de_passe, email, nom_complet, role) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$username, $hashed_password, $email, $nom_complet, $role]);
+            $stmt = $pdo->prepare("INSERT INTO utilisateurs (nom_utilisateur, email, mot_de_passe, nom_complet, role) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$username, $email, $hashed_password, $nom_complet, $role]);
 
             $success = "Compte créé avec succès! Vous pouvez maintenant vous connecter.";
+            $show_success = true;
         } catch (PDOException $e) {
             $errors[] = "Erreur lors de la création: " . $e->getMessage();
         }
@@ -76,9 +82,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Section Illustration -->
         <div class="auth-illustration">
             <div class="illustration-content">
-                <div class="illustration-icon">👤</div>
-                <h2>Rejoignez-nous</h2>
-                <p>Créez votre compte pour accéder au système</p>
+                <div class="illustration-icon">🚀</div>
+                <h2>Commencez l'aventure</h2>
+                <p>Rejoignez l'équipe BRALIMA</p>
             </div>
         </div>
 
@@ -86,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="auth-form-section">
             <div class="auth-header">
                 <h1>Créer un compte</h1>
-                <p>Remplissez les informations pour votre compte</p>
+                <p>Remplissez vos informations pour commencer</p>
             </div>
 
             <?php if (!empty($errors)): ?>
@@ -96,55 +102,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <?php if (isset($success)): ?>
-                <div class="alert success"><?= $success ?></div>
-                <div class="auth-links">
-                    <a href="login.php" class="btn-primary" style="text-align: center; display: block;">Se connecter</a>
+                <div class="alert success">
+                    <div style="text-align: center;">
+                        <div style="font-size: 3rem; margin-bottom: 10px;">🎉</div>
+                        <h3 style="margin-bottom: 10px;">Compte créé avec succès!</h3>
+                        <p style="margin-bottom: 20px;">Vous pouvez maintenant vous connecter à votre compte.</p>
+                        <a href="login.php" class="btn-primary" style="display: inline-block; padding: 12px 30px; text-decoration: none;">
+                            Se connecter
+                        </a>
+                    </div>
                 </div>
             <?php else: ?>
-                <form method="POST" class="auth-form">
+
+                <div class="code-hint">
+                    <strong>💡 Information:</strong> Vous avez besoin d'un code d'accès pour créer un compte. Contactez l'administrateur.
+                </div>
+
+                <form method="POST" class="auth-form" id="registerForm">
                     <div class="form-group">
-                        <label for="nom_complet">Nom complet</label>
-                        <input type="text" id="nom_complet" name="nom_complet" class="form-control" placeholder="Votre nom complet" required>
+                        <label for="nom_complet">Nom complet *</label>
+                        <input type="text" id="nom_complet" name="nom_complet" class="form-control"
+                            placeholder="Ex: John Doe" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="username">Nom d'utilisateur</label>
-                        <input type="text" id="username" name="username" class="form-control" placeholder="Choisissez un nom d'utilisateur" required>
+                        <label for="username">Nom d'utilisateur *</label>
+                        <input type="text" id="username" name="username" class="form-control"
+                            placeholder="Ex: johndoe" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="email">Adresse email</label>
-                        <input type="email" id="email" name="email" class="form-control" placeholder="votre@email.com" required>
+                        <label for="email">Adresse email *</label>
+                        <input type="email" id="email" name="email" class="form-control"
+                            placeholder="exemple@bralima.cd" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="password">Mot de passe</label>
-                        <input type="password" id="password" name="password" class="form-control" placeholder="Minimum 6 caractères" required>
+                        <label for="password">Mot de passe *</label>
+                        <input type="password" id="password" name="password" class="form-control"
+                            placeholder="Minimum 6 caractères" required>
                         <div class="password-strength">
-                            <div class="strength-bar"></div>
+                            <div class="strength-bar" id="strengthBar"></div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="confirm_password">Confirmer le mot de passe</label>
-                        <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Répétez le mot de passe" required>
+                        <label for="confirm_password">Confirmer le mot de passe *</label>
+                        <input type="password" id="confirm_password" name="confirm_password" class="form-control"
+                            placeholder="Répétez votre mot de passe" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="access_code">Code d'accès</label>
-                        <input type="text" id="access_code" name="access_code" class="form-control" placeholder="Code requis pour l'inscription" required>
-                        <small style="color: var(--gray); font-size: 0.85rem;">Demandez le code d'accès à l'administrateur</small>
+                        <label for="access_code">Code d'accès *</label>
+                        <input type="text" id="access_code" name="access_code" class="form-control"
+                            placeholder="Entrez le code d'accès" required>
                     </div>
 
                     <button type="submit" class="btn-primary">
-                        Créer le compte
+                        Créer mon compte
                     </button>
                 </form>
-            <?php endif; ?>
 
-            <div class="auth-links">
-                <a href="login.php">← Retour à la connexion</a>
-            </div>
+                <div class="auth-links">
+                    <a href="login.php">← Déjà un compte? Se connecter</a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
