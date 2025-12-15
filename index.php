@@ -174,8 +174,8 @@ requireLogin();
                         <?php endif;
                         } catch (Exception $e) {
                             echo '<div style="text-align: center; padding: 2rem; color: #666;">';
-                            echo '<p>📊 Module Ventes en préparation</p>';
-                            echo '<p><small>Le module des ventes sera bientôt disponible</small></p>';
+                            echo '<p>📊 Module des Ventes</p>';
+                            echo '<p><small>Veillez cliquer sur voir plus pour avoir accès au module</small></p>';
                             echo '</div>';
                         }
                         ?>
@@ -237,8 +237,8 @@ requireLogin();
                         <?php endif;
                         } catch (Exception $e) {
                             echo '<div style="text-align: center; padding: 2rem; color: #666;">';
-                            echo '<p>📦 Gestion des stocks en préparation</p>';
-                            echo '<p><small>Le module des stocks sera bientôt disponible</small></p>';
+                            echo '<p>📦 Gestion des stocks </p>';
+                            echo '<p><small>Veillez cliquer sur gérer pour avoir accès son espace de gestion</strong></p>';
                             echo '</div>';
                         }
                         ?>
