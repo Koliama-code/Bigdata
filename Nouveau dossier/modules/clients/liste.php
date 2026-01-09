@@ -9,8 +9,8 @@ requireLogin();
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Ventes - <?php echo APP_NAME; ?></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Gestion des Clients - <?php echo APP_NAME; ?></title>
     <link rel="stylesheet" href="../../assets/css/dashboard.css">
     <style>
         .actions {
@@ -30,11 +30,6 @@ requireLogin();
             color: white;
         }
 
-        .btn-success {
-            background: #38a169;
-            color: white;
-        }
-
         .btn-warning {
             background: #ed8936;
             color: white;
@@ -42,6 +37,11 @@ requireLogin();
 
         .btn-danger {
             background: #e53e3e;
+            color: white;
+        }
+
+        .btn-success {
+            background: #38a169;
             color: white;
         }
 
@@ -70,6 +70,15 @@ requireLogin();
             border-radius: 4px;
         }
 
+        .search-bar input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-bar select {
+            min-width: 150px;
+        }
+
         .badge {
             padding: 4px 8px;
             border-radius: 12px;
@@ -82,14 +91,14 @@ requireLogin();
             color: #276749;
         }
 
-        .badge-warning {
-            background: #feebcb;
-            color: #c05621;
-        }
-
         .badge-danger {
             background: #fed7d7;
             color: #c53030;
+        }
+
+        .client-info {
+            font-size: 0.9rem;
+            color: #666;
         }
     </style>
 </head>
@@ -102,8 +111,8 @@ requireLogin();
 
         <main class="main-content">
             <div class="page-header">
-                <h1>💰 Gestion des Ventes</h1>
-                <p>Gérez les ventes et transactions commerciales</p>
+                <h1>👥 Gestion des Clients</h1>
+                <p>Gérez votre base de données clients</p>
             </div>
 
             <!-- Barre d'actions -->
@@ -111,7 +120,7 @@ requireLogin();
                 <div class="card-header">
                     <h3>Actions Rapides</h3>
                     <div style="display: flex; gap: 10px;">
-                        <a href="nouvelle.php" class="btn btn-primary">➕ Nouvelle vente</a>
+                        <a href="ajouter.php" class="btn btn-primary">➕ Ajouter un client</a>
                         <a href="liste.php" class="btn btn-info">🔄 Actualiser</a>
                     </div>
                 </div>
@@ -127,13 +136,9 @@ requireLogin();
 
                         <select name="statut" id="statutFilter">
                             <option value="">Tous les statuts</option>
-                            <option value="confirmee" <?php echo ($_GET['statut'] ?? '') == 'confirmee' ? 'selected' : ''; ?>>Confirmées</option>
-                            <option value="en_attente" <?php echo ($_GET['statut'] ?? '') == 'en_attente' ? 'selected' : ''; ?>>En attente</option>
-                            <option value="annulee" <?php echo ($_GET['statut'] ?? '') == 'annulee' ? 'selected' : ''; ?>>Annulées</option>
+                            <option value="actif" <?php echo ($_GET['statut'] ?? '') == 'actif' ? 'selected' : ''; ?>>Actifs</option>
+                            <option value="inactif" <?php echo ($_GET['statut'] ?? '') == 'inactif' ? 'selected' : ''; ?>>Inactifs</option>
                         </select>
-
-                        <input type="date" name="date_debut" value="<?php echo $_GET['date_debut'] ?? ''; ?>">
-                        <input type="date" name="date_fin" value="<?php echo $_GET['date_fin'] ?? ''; ?>">
 
                         <button type="submit" class="btn btn-primary">🔍 Rechercher</button>
                         <a href="liste.php" class="btn btn-secondary">🗑️ Effacer</a>
@@ -141,11 +146,11 @@ requireLogin();
                 </form>
             </div>
 
-            <!-- Liste des ventes -->
+            <!-- Liste des clients -->
             <div class="content-card">
                 <div class="card-header">
-                    <h3>Historique des Ventes</h3>
-                    <span id="venteCount">
+                    <h3>Liste des Clients</h3>
+                    <span id="clientCount">
                         <?php
                         try {
                             $pdo = getDBConnection();
@@ -155,40 +160,27 @@ requireLogin();
                             $params = [];
 
                             if (!empty($_GET['search'])) {
-                                $where[] = "(c.nom_client LIKE ?)";
+                                $where[] = "(nom_client LIKE ? OR telephone LIKE ? OR email LIKE ?)";
                                 $search_term = '%' . $_GET['search'] . '%';
+                                $params[] = $search_term;
+                                $params[] = $search_term;
                                 $params[] = $search_term;
                             }
 
                             if (!empty($_GET['statut'])) {
-                                $where[] = "v.statut = ?";
+                                $where[] = "statut = ?";
                                 $params[] = $_GET['statut'];
-                            }
-
-                            if (!empty($_GET['date_debut'])) {
-                                $where[] = "DATE(v.date_vente) >= ?";
-                                $params[] = $_GET['date_debut'];
-                            }
-
-                            if (!empty($_GET['date_fin'])) {
-                                $where[] = "DATE(v.date_vente) <= ?";
-                                $params[] = $_GET['date_fin'];
                             }
 
                             $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
                             // Compter le total
-                            $count_sql = "
-                                SELECT COUNT(*) as total 
-                                FROM ventes v 
-                                LEFT JOIN clients c ON v.id_client = c.id_client 
-                                $where_clause
-                            ";
+                            $count_sql = "SELECT COUNT(*) as total FROM clients $where_clause";
                             $stmt = $pdo->prepare($count_sql);
                             $stmt->execute($params);
                             $total = $stmt->fetch()['total'];
 
-                            echo $total . ' vente(s) trouvée(s)';
+                            echo $total . ' client(s) trouvé(s)';
                         } catch (Exception $e) {
                             echo 'Erreur de comptage';
                         }
@@ -200,73 +192,73 @@ requireLogin();
                     try {
                         $pdo = getDBConnection();
 
-                        // Requête pour les ventes avec filtres
+                        // Requête pour les clients avec filtres
                         $sql = "
-                            SELECT v.*, c.nom_client 
-                            FROM ventes v 
-                            LEFT JOIN clients c ON v.id_client = c.id_client 
+                            SELECT * FROM clients 
                             $where_clause
-                            ORDER BY v.date_vente DESC
+                            ORDER BY nom_client
                         ";
 
                         $stmt = $pdo->prepare($sql);
                         $stmt->execute($params);
-                        $ventes = $stmt->fetchAll();
+                        $clients = $stmt->fetchAll();
 
-                        if (count($ventes) > 0):
+                        if (count($clients) > 0):
                     ?>
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>ID Vente</th>
-                                        <th>Client</th>
-                                        <th>Date</th>
-                                        <th>Montant Total</th>
+                                        <th>ID</th>
+                                        <th>Nom du Client</th>
+                                        <th>Coordonnées</th>
+                                        <th>Date d'inscription</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($ventes as $vente):
-                                        // Déterminer la classe du statut
-                                        switch ($vente['statut']) {
-                                            case 'confirmee':
-                                                $statut_class = 'badge-success';
-                                                $statut_text = 'Confirmée';
-                                                break;
-                                            case 'en_attente':
-                                                $statut_class = 'badge-warning';
-                                                $statut_text = 'En attente';
-                                                break;
-                                            case 'annulee':
-                                                $statut_class = 'badge-danger';
-                                                $statut_text = 'Annulée';
-                                                break;
-                                            default:
-                                                $statut_class = 'badge-warning';
-                                                $statut_text = $vente['statut'];
-                                        }
-                                    ?>
+                                    <?php foreach ($clients as $client): ?>
                                         <tr>
-                                            <td><strong>#<?php echo $vente['id_vente']; ?></strong></td>
-                                            <td><?php echo $vente['nom_client'] ?? 'Client non spécifié'; ?></td>
-                                            <td><?php echo date('d/m/Y H:i', strtotime($vente['date_vente'])); ?></td>
-                                            <td><strong><?php echo number_format($vente['montant_total'], 0, ',', ' '); ?> CDF</strong></td>
+                                            <td><?php echo $client['id_client']; ?></td>
                                             <td>
-                                                <span class="badge <?php echo $statut_class; ?>">
-                                                    <?php echo $statut_text; ?>
-                                                </span>
+                                                <strong><?php echo $client['nom_client']; ?></strong>
+                                                <?php if (!empty($client['adresse'])): ?>
+                                                    <div class="client-info">
+                                                        📍 <?php echo substr($client['adresse'], 0, 50); ?>...
+                                                    </div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if (!empty($client['telephone'])): ?>
+                                                    <div class="client-info">📞 <?php echo $client['telephone']; ?></div>
+                                                <?php endif; ?>
+                                                <?php if (!empty($client['email'])): ?>
+                                                    <div class="client-info">📧 <?php echo $client['email']; ?></div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><?php echo date('d/m/Y', strtotime($client['date_creation'])); ?></td>
+                                            <td>
+                                                <?php if ($client['statut'] == 'actif'): ?>
+                                                    <span class="badge badge-success">Actif</span>
+                                                <?php else: ?>
+                                                    <span class="badge badge-danger">Inactif</span>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="actions">
-                                                <a href="details.php?id=<?php echo $vente['id_vente']; ?>" class="btn btn-primary" title="Voir détails">
+                                                <a href="details.php?id=<?php echo $client['id_client']; ?>" class="btn btn-primary" title="Voir détails">
                                                     👁️
                                                 </a>
-                                                <?php if ($vente['statut'] == 'en_attente'): ?>
-                                                    <a href="confirmer.php?id=<?php echo $vente['id_vente']; ?>" class="btn btn-success" title="Confirmer">
-                                                        ✅
+                                                <a href="modifier.php?id=<?php echo $client['id_client']; ?>" class="btn btn-warning" title="Modifier">
+                                                    ✏️
+                                                </a>
+                                                <?php if ($client['statut'] == 'actif'): ?>
+                                                    <a href="desactiver.php?id=<?php echo $client['id_client']; ?>" class="btn btn-danger" title="Désactiver"
+                                                        onclick="return confirm('Désactiver le client \'<?php echo $client['nom_client']; ?>\'?')">
+                                                        🚫
                                                     </a>
-                                                    <a href="annuler.php?id=<?php echo $vente['id_vente']; ?>" class="btn btn-danger" title="Annuler">
-                                                        ❌
+                                                <?php else: ?>
+                                                    <a href="activer.php?id=<?php echo $client['id_client']; ?>" class="btn btn-success" title="Activer">
+                                                        ✅
                                                     </a>
                                                 <?php endif; ?>
                                             </td>
@@ -276,19 +268,19 @@ requireLogin();
                             </table>
                         <?php else: ?>
                             <div style="text-align: center; padding: 3rem; color: #666;">
-                                <p style="font-size: 1.2rem; margin-bottom: 1rem;">📝 Aucune vente trouvée</p>
+                                <p style="font-size: 1.2rem; margin-bottom: 1rem;">📝 Aucun client trouvé</p>
                                 <p>
-                                    <?php if (!empty($_GET['search']) || !empty($_GET['statut']) || !empty($_GET['date_debut'])): ?>
-                                        Aucune vente ne correspond à vos critères de recherche.
+                                    <?php if (!empty($_GET['search']) || !empty($_GET['statut'])): ?>
+                                        Aucun client ne correspond à vos critères de recherche.
                                         <br>
                                         <a href="liste.php" class="btn btn-primary" style="margin-top: 1rem;">
-                                            🔄 Afficher toutes les ventes
+                                            🔄 Afficher tous les clients
                                         </a>
                                     <?php else: ?>
-                                        Aucune vente n'a été enregistrée dans le système.
+                                        Aucun client n'a été enregistré dans le système.
                                         <br>
-                                        <a href="nouvelle.php" class="btn btn-primary" style="margin-top: 1rem;">
-                                            ➕ Créer la première vente
+                                        <a href="ajouter.php" class="btn btn-primary" style="margin-top: 1rem;">
+                                            ➕ Ajouter le premier client
                                         </a>
                                     <?php endif; ?>
                                 </p>
@@ -298,7 +290,7 @@ requireLogin();
                     <?php
                     } catch (Exception $e) {
                         echo '<div style="text-align: center; padding: 2rem; color: red;">';
-                        echo '<p>❌ Erreur lors du chargement des ventes</p>';
+                        echo '<p>❌ Erreur lors du chargement des clients</p>';
                         echo '<p><small>' . $e->getMessage() . '</small></p>';
                         echo '</div>';
                     }
@@ -307,6 +299,13 @@ requireLogin();
             </div>
         </main>
     </div>
+
+    <script>
+        // Fonction pour valider la désactivation
+        function confirmDesactivation(clientName) {
+            return confirm('Êtes-vous sûr de vouloir désactiver le client "' + clientName + '" ?');
+        }
+    </script>
 </body>
 
 </html>

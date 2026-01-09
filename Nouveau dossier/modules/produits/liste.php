@@ -9,8 +9,8 @@ requireLogin();
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Clients - <?php echo APP_NAME; ?></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Gestion des Produits - <?php echo APP_NAME; ?></title>
     <link rel="stylesheet" href="../../assets/css/dashboard.css">
     <style>
         .actions {
@@ -37,11 +37,6 @@ requireLogin();
 
         .btn-danger {
             background: #e53e3e;
-            color: white;
-        }
-
-        .btn-success {
-            background: #38a169;
             color: white;
         }
 
@@ -79,26 +74,25 @@ requireLogin();
             min-width: 150px;
         }
 
-        .badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
+        .stock-display {
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 10px;
         }
 
-        .badge-success {
+        .stock-normal {
             background: #c6f6d5;
             color: #276749;
         }
 
-        .badge-danger {
-            background: #fed7d7;
-            color: #c53030;
+        .stock-alert {
+            background: #feebcb;
+            color: #c05621;
         }
 
-        .client-info {
-            font-size: 0.9rem;
-            color: #666;
+        .stock-rupture {
+            background: #fed7d7;
+            color: #c53030;
         }
     </style>
 </head>
@@ -111,8 +105,8 @@ requireLogin();
 
         <main class="main-content">
             <div class="page-header">
-                <h1>👥 Gestion des Clients</h1>
-                <p>Gérez votre base de données clients</p>
+                <h1>📦 Gestion des Produits</h1>
+                <p>Gérez votre inventaire de produits BRALIMA</p>
             </div>
 
             <!-- Barre d'actions -->
@@ -120,7 +114,7 @@ requireLogin();
                 <div class="card-header">
                     <h3>Actions Rapides</h3>
                     <div style="display: flex; gap: 10px;">
-                        <a href="ajouter.php" class="btn btn-primary">➕ Ajouter un client</a>
+                        <a href="ajouter.php" class="btn btn-primary">➕ Ajouter un produit</a>
                         <a href="liste.php" class="btn btn-info">🔄 Actualiser</a>
                     </div>
                 </div>
@@ -131,13 +125,26 @@ requireLogin();
                 <form method="GET" id="searchForm">
                     <div class="search-bar">
                         <input type="text" name="search" id="searchInput"
-                            placeholder="🔍 Rechercher un client..."
+                            placeholder="🔍 Rechercher un produit..."
                             value="<?php echo $_GET['search'] ?? ''; ?>">
 
-                        <select name="statut" id="statutFilter">
-                            <option value="">Tous les statuts</option>
-                            <option value="actif" <?php echo ($_GET['statut'] ?? '') == 'actif' ? 'selected' : ''; ?>>Actifs</option>
-                            <option value="inactif" <?php echo ($_GET['statut'] ?? '') == 'inactif' ? 'selected' : ''; ?>>Inactifs</option>
+                        <select name="categorie" id="categoryFilter">
+                            <option value="">Toutes les catégories</option>
+                            <?php
+                            $pdo = getDBConnection();
+                            try {
+                                $stmt = $pdo->query("SELECT * FROM categories_produit ORDER BY nom_categorie");
+                                $selected_categorie = $_GET['categorie'] ?? '';
+                                while ($categorie = $stmt->fetch()):
+                                    $selected = ($categorie['id_categorie'] == $selected_categorie) ? 'selected' : '';
+                            ?>
+                                    <option value="<?php echo $categorie['id_categorie']; ?>" <?php echo $selected; ?>>
+                                        <?php echo $categorie['nom_categorie']; ?>
+                                    </option>
+                                <?php endwhile; ?>
+                            <?php } catch (Exception $e) { ?>
+                                <option value="">Aucune catégorie trouvée</option>
+                            <?php } ?>
                         </select>
 
                         <button type="submit" class="btn btn-primary">🔍 Rechercher</button>
@@ -146,11 +153,11 @@ requireLogin();
                 </form>
             </div>
 
-            <!-- Liste des clients -->
+            <!-- Liste des produits -->
             <div class="content-card">
                 <div class="card-header">
-                    <h3>Liste des Clients</h3>
-                    <span id="clientCount">
+                    <h3>Liste des Produits</h3>
+                    <span id="productCount">
                         <?php
                         try {
                             $pdo = getDBConnection();
@@ -160,27 +167,26 @@ requireLogin();
                             $params = [];
 
                             if (!empty($_GET['search'])) {
-                                $where[] = "(nom_client LIKE ? OR telephone LIKE ? OR email LIKE ?)";
+                                $where[] = "(p.designation LIKE ? OR p.description LIKE ?)";
                                 $search_term = '%' . $_GET['search'] . '%';
-                                $params[] = $search_term;
                                 $params[] = $search_term;
                                 $params[] = $search_term;
                             }
 
-                            if (!empty($_GET['statut'])) {
-                                $where[] = "statut = ?";
-                                $params[] = $_GET['statut'];
+                            if (!empty($_GET['categorie'])) {
+                                $where[] = "p.id_categorie = ?";
+                                $params[] = $_GET['categorie'];
                             }
 
                             $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
                             // Compter le total
-                            $count_sql = "SELECT COUNT(*) as total FROM clients $where_clause";
+                            $count_sql = "SELECT COUNT(*) as total FROM produits p $where_clause";
                             $stmt = $pdo->prepare($count_sql);
                             $stmt->execute($params);
                             $total = $stmt->fetch()['total'];
 
-                            echo $total . ' client(s) trouvé(s)';
+                            echo $total . ' produit(s) trouvé(s)';
                         } catch (Exception $e) {
                             echo 'Erreur de comptage';
                         }
@@ -192,75 +198,81 @@ requireLogin();
                     try {
                         $pdo = getDBConnection();
 
-                        // Requête pour les clients avec filtres
+                        // Requête pour les produits avec filtres
                         $sql = "
-                            SELECT * FROM clients 
+                            SELECT p.*, cp.nom_categorie 
+                            FROM produits p 
+                            LEFT JOIN categories_produit cp ON p.id_categorie = cp.id_categorie 
                             $where_clause
-                            ORDER BY nom_client
+                            ORDER BY p.designation
                         ";
 
                         $stmt = $pdo->prepare($sql);
                         $stmt->execute($params);
-                        $clients = $stmt->fetchAll();
+                        $produits = $stmt->fetchAll();
 
-                        if (count($clients) > 0):
+                        if (count($produits) > 0):
                     ?>
                             <table class="data-table">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>Nom du Client</th>
-                                        <th>Coordonnées</th>
-                                        <th>Date d'inscription</th>
+                                        <th>Désignation</th>
+                                        <th>Catégorie</th>
+                                        <th>Prix unitaire</th>
+                                        <th>Stock</th>
                                         <th>Statut</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($clients as $client): ?>
+                                    <?php foreach ($produits as $produit):
+                                        $stock = $produit['quantite_stock'];
+                                        $stock_alerte = $produit['stock_alerte'];
+
+                                        // Déterminer le statut du stock
+                                        if ($stock == 0) {
+                                            $status_class = 'status-rupture';
+                                            $status_text = 'Rupture';
+                                            $stock_class = 'stock-rupture';
+                                        } elseif ($stock <= $stock_alerte) {
+                                            $status_class = 'status-alerte';
+                                            $status_text = 'Alerte';
+                                            $stock_class = 'stock-alert';
+                                        } else {
+                                            $status_class = 'status-confirmee';
+                                            $status_text = 'Normal';
+                                            $stock_class = 'stock-normal';
+                                        }
+                                    ?>
                                         <tr>
-                                            <td><?php echo $client['id_client']; ?></td>
+                                            <td><?php echo $produit['id_produit']; ?></td>
                                             <td>
-                                                <strong><?php echo $client['nom_client']; ?></strong>
-                                                <?php if (!empty($client['adresse'])): ?>
-                                                    <div class="client-info">
-                                                        📍 <?php echo substr($client['adresse'], 0, 50); ?>...
-                                                    </div>
-                                                <?php endif; ?>
+                                                <strong><?php echo $produit['designation']; ?></strong>
+                                            </td>
+                                            <td><?php echo $produit['nom_categorie'] ?? 'Non catégorisé'; ?></td>
+                                            <td><strong><?php echo number_format($produit['prix_unitaire'], 0, ',', ' '); ?> CDF</strong></td>
+                                            <td>
+                                                <span class="stock-display <?php echo $stock_class; ?>">
+                                                    <?php echo $stock; ?> unités
+                                                </span>
                                             </td>
                                             <td>
-                                                <?php if (!empty($client['telephone'])): ?>
-                                                    <div class="client-info">📞 <?php echo $client['telephone']; ?></div>
-                                                <?php endif; ?>
-                                                <?php if (!empty($client['email'])): ?>
-                                                    <div class="client-info">📧 <?php echo $client['email']; ?></div>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td><?php echo date('d/m/Y', strtotime($client['date_creation'])); ?></td>
-                                            <td>
-                                                <?php if ($client['statut'] == 'actif'): ?>
-                                                    <span class="badge badge-success">Actif</span>
-                                                <?php else: ?>
-                                                    <span class="badge badge-danger">Inactif</span>
-                                                <?php endif; ?>
+                                                <span class="status-badge <?php echo $status_class; ?>">
+                                                    <?php echo $status_text; ?>
+                                                </span>
                                             </td>
                                             <td class="actions">
-                                                <a href="details.php?id=<?php echo $client['id_client']; ?>" class="btn btn-primary" title="Voir détails">
+                                                <a href="details.php?id=<?php echo $produit['id_produit']; ?>" class="btn btn-primary" title="Voir détails">
                                                     👁️
                                                 </a>
-                                                <a href="modifier.php?id=<?php echo $client['id_client']; ?>" class="btn btn-warning" title="Modifier">
+                                                <a href="modifier.php?id=<?php echo $produit['id_produit']; ?>" class="btn btn-warning" title="Modifier">
                                                     ✏️
                                                 </a>
-                                                <?php if ($client['statut'] == 'actif'): ?>
-                                                    <a href="desactiver.php?id=<?php echo $client['id_client']; ?>" class="btn btn-danger" title="Désactiver"
-                                                        onclick="return confirm('Désactiver le client \'<?php echo $client['nom_client']; ?>\'?')">
-                                                        🚫
-                                                    </a>
-                                                <?php else: ?>
-                                                    <a href="activer.php?id=<?php echo $client['id_client']; ?>" class="btn btn-success" title="Activer">
-                                                        ✅
-                                                    </a>
-                                                <?php endif; ?>
+                                                <a href="supprimer.php?id=<?php echo $produit['id_produit']; ?>" class="btn btn-danger" title="Supprimer"
+                                                    onclick="return confirm('Êtes-vous sûr de vouloir supprimer le produit \'<?php echo $produit['designation']; ?>\'?')">
+                                                    🗑️
+                                                </a>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -268,19 +280,19 @@ requireLogin();
                             </table>
                         <?php else: ?>
                             <div style="text-align: center; padding: 3rem; color: #666;">
-                                <p style="font-size: 1.2rem; margin-bottom: 1rem;">📝 Aucun client trouvé</p>
+                                <p style="font-size: 1.2rem; margin-bottom: 1rem;">📝 Aucun produit trouvé</p>
                                 <p>
-                                    <?php if (!empty($_GET['search']) || !empty($_GET['statut'])): ?>
-                                        Aucun client ne correspond à vos critères de recherche.
+                                    <?php if (!empty($_GET['search']) || !empty($_GET['categorie'])): ?>
+                                        Aucun produit ne correspond à vos critères de recherche.
                                         <br>
                                         <a href="liste.php" class="btn btn-primary" style="margin-top: 1rem;">
-                                            🔄 Afficher tous les clients
+                                            🔄 Afficher tous les produits
                                         </a>
                                     <?php else: ?>
-                                        Aucun client n'a été enregistré dans le système.
+                                        Aucun produit n'a été enregistré dans le système.
                                         <br>
                                         <a href="ajouter.php" class="btn btn-primary" style="margin-top: 1rem;">
-                                            ➕ Ajouter le premier client
+                                            ➕ Ajouter le premier produit
                                         </a>
                                     <?php endif; ?>
                                 </p>
@@ -290,7 +302,7 @@ requireLogin();
                     <?php
                     } catch (Exception $e) {
                         echo '<div style="text-align: center; padding: 2rem; color: red;">';
-                        echo '<p>❌ Erreur lors du chargement des clients</p>';
+                        echo '<p>❌ Erreur lors du chargement des produits</p>';
                         echo '<p><small>' . $e->getMessage() . '</small></p>';
                         echo '</div>';
                     }
@@ -299,13 +311,6 @@ requireLogin();
             </div>
         </main>
     </div>
-
-    <script>
-        // Fonction pour valider la désactivation
-        function confirmDesactivation(clientName) {
-            return confirm('Êtes-vous sûr de vouloir désactiver le client "' + clientName + '" ?');
-        }
-    </script>
 </body>
 
 </html>
